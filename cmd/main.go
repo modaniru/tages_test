@@ -14,10 +14,10 @@ func main(){
 
 	server := server.NewImageServiceServer()
 	listener, _ := net.Listen("tcp", ":8080")
-	
+
 	fmt.Println("ping pong")
 	s := grpc.NewServer()
 	reflection.Register(s)
-	pkg.RegisterGreeterServer(s, server)
+	pkg.RegisterImageServiceServer(s, server)
 	s.Serve(listener)
 }

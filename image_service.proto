@@ -5,11 +5,21 @@ package tgf;
 option go_package = "/pkg";
 
 // The greeting service definition.
-service Greeter {
+service ImageService {
     // Sends a greeting
     rpc SayHello (HelloRequest) returns (HelloReply) {}
+    rpc LoadImage (ImageRequest) returns (Status) {}
 }
-  
+ 
+message Status {
+    
+}
+
+message ImageRequest{
+    bytes Data = 1;
+    string Name = 2;
+}
+
 // The request message containing the user's name.
 message HelloRequest {
     string name = 1;

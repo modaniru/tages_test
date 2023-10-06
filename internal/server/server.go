@@ -3,47 +3,78 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
-	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/modaniru/tages_test/gen/pkg"
 )
 
-type ImageServiceServer struct{
-	pkg.GreeterServer
-	f func(ctx context.Context, request *pkg.HelloRequest) (*pkg.HelloReply, error)
+var ErrRequestLimited error = errors.New("request limited")
+
+type ImageServiceServer struct {
+	pkg.ImageRequest
+	sayHello  func(func()) error
+	saveImage func(func()) error
 }
 
-func NewImageServiceServer() *ImageServiceServer{
-	return &ImageServiceServer{f: say()}
+// mustEmbedUnimplementedImageServiceServer implements pkg.ImageServiceServer.
+func (*ImageServiceServer) mustEmbedUnimplementedImageServiceServer() {
+	panic("unimplemented")
 }
 
-func (i *ImageServiceServer) SayHello(ctx context.Context, request *pkg.HelloRequest) (*pkg.HelloReply, error){
-	return i.f(ctx, request)
+func NewImageServiceServer() *ImageServiceServer {
+	return &ImageServiceServer{
+		sayHello:  restrictions(10),
+		saveImage: restrictions(10),
+	}
 }
 
-func say() func(ctx context.Context, request *pkg.HelloRequest) (*pkg.HelloReply, error){
+func (i *ImageServiceServer) SayHello(ctx context.Context, request *pkg.HelloRequest) (*pkg.HelloReply, error) {
+	var result *pkg.HelloReply
+	err := i.sayHello(
+		func() {
+			time.Sleep(time.Second * 1)
+			result = &pkg.HelloReply{Message: "hello " + request.Name}
+		},
+	)
+	if err != nil{
+		return nil, err
+	}
+	return result, nil
+}
+
+func (i *ImageServiceServer) LoadImage(ctx context.Context, request *pkg.ImageRequest) (*pkg.Status, error) {
+	var result *pkg.Status
+	err := i.sayHello(
+		func() {
+			result = &pkg.Status{}
+			time.Sleep(1000)
+		},
+	)
+	if err != nil{
+		return nil, err
+	}
+	return result, nil
+}
+
+func restrictions(limit int) func(func()) error {
 	count := 0
 	var mutex sync.RWMutex
-	return func(ctx context.Context, request *pkg.HelloRequest) (*pkg.HelloReply, error) {
+	return func(f func()) error{
 		mutex.Lock()
 		count++
-		if count > 10{
+		if count >= limit {
 			count--
 			mutex.Unlock()
-			return nil, errors.New("error")
+			return ErrRequestLimited
 		}
 		mutex.Unlock()
-		
-		fmt.Println(count)
-		time.Sleep(time.Millisecond * time.Duration((rand.Float64() * 500)))
+
+		f()
 
 		mutex.Lock()
 		count--
 		mutex.Unlock()
-		
-		return &pkg.HelloReply{Message: "hello " + request.Name}, nil
+		return nil
 	}
 }

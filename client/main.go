@@ -17,7 +17,7 @@ func main(){
 	}
 	fmt.Println("hrer")
 	
-	client := pkg.NewGreeterClient(conn)
+	client := pkg.NewImageServiceClient(conn)
 	for i := 0; i < 1000; i++{
 		go func ()  {
 			j := i
