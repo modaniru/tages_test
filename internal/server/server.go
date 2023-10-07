@@ -3,23 +3,20 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/modaniru/tages_test/gen/pkg"
+	"github.com/modaniru/tages_test/internal/service"
 )
 
 var ErrRequestLimited error = errors.New("request limited")
 
 type ImageServiceServer struct {
 	pkg.ImageRequest
-	sayHello  func(func()) error
-	saveImage func(func()) error
-}
-
-// mustEmbedUnimplementedImageServiceServer implements pkg.ImageServiceServer.
-func (*ImageServiceServer) mustEmbedUnimplementedImageServiceServer() {
-	panic("unimplemented")
+	sayHello  func(func() error) error
+	saveImage func(func() error) error
 }
 
 func NewImageServiceServer() *ImageServiceServer {
@@ -32,9 +29,10 @@ func NewImageServiceServer() *ImageServiceServer {
 func (i *ImageServiceServer) SayHello(ctx context.Context, request *pkg.HelloRequest) (*pkg.HelloReply, error) {
 	var result *pkg.HelloReply
 	err := i.sayHello(
-		func() {
+		func() error{
 			time.Sleep(time.Second * 1)
 			result = &pkg.HelloReply{Message: "hello " + request.Name}
+			return nil
 		},
 	)
 	if err != nil{
@@ -44,11 +42,17 @@ func (i *ImageServiceServer) SayHello(ctx context.Context, request *pkg.HelloReq
 }
 
 func (i *ImageServiceServer) LoadImage(ctx context.Context, request *pkg.ImageRequest) (*pkg.Status, error) {
+	fmt.Println("test")
 	var result *pkg.Status
-	err := i.sayHello(
-		func() {
+	err := i.saveImage(
+		func() error{
 			result = &pkg.Status{}
-			time.Sleep(1000)
+			service := service.NewImageService()
+			err := service.SaveImage(request.Data, request.Name)
+			if err != nil{
+				return err
+			}
+			return nil
 		},
 	)
 	if err != nil{
@@ -57,10 +61,10 @@ func (i *ImageServiceServer) LoadImage(ctx context.Context, request *pkg.ImageRe
 	return result, nil
 }
 
-func restrictions(limit int) func(func()) error {
+func restrictions(limit int) func(func() error) error {
 	count := 0
 	var mutex sync.RWMutex
-	return func(f func()) error{
+	return func(f func() error) error{
 		mutex.Lock()
 		count++
 		if count >= limit {
@@ -70,11 +74,17 @@ func restrictions(limit int) func(func()) error {
 		}
 		mutex.Unlock()
 
-		f()
+		defer func(){
+			mutex.Lock()
+			count--
+			mutex.Unlock()
+		}()
 
-		mutex.Lock()
-		count--
-		mutex.Unlock()
+		err := f()
+		if err != nil{
+			return err
+		}
+
 		return nil
 	}
 }
