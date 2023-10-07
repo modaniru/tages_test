@@ -24,7 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 type ImageServiceClient interface {
 	// Sends a greeting
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
-	LoadImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (*Status, error)
+	LoadImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (*Empty, error)
+	GetImages(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Images, error)
 }
 
 type imageServiceClient struct {
@@ -44,9 +45,18 @@ func (c *imageServiceClient) SayHello(ctx context.Context, in *HelloRequest, opt
 	return out, nil
 }
 
-func (c *imageServiceClient) LoadImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (*Status, error) {
-	out := new(Status)
+func (c *imageServiceClient) LoadImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/tgf.ImageService/LoadImage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *imageServiceClient) GetImages(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Images, error) {
+	out := new(Images)
+	err := c.cc.Invoke(ctx, "/tgf.ImageService/GetImages", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +69,8 @@ func (c *imageServiceClient) LoadImage(ctx context.Context, in *ImageRequest, op
 type ImageServiceServer interface {
 	// Sends a greeting
 	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
-	LoadImage(context.Context, *ImageRequest) (*Status, error)
+	LoadImage(context.Context, *ImageRequest) (*Empty, error)
+	GetImages(context.Context, *Empty) (*Images, error)
 }
 
 // UnimplementedImageServiceServer should be embedded to have forward compatible implementations.
@@ -69,8 +80,11 @@ type UnimplementedImageServiceServer struct {
 func (UnimplementedImageServiceServer) SayHello(context.Context, *HelloRequest) (*HelloReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
 }
-func (UnimplementedImageServiceServer) LoadImage(context.Context, *ImageRequest) (*Status, error) {
+func (UnimplementedImageServiceServer) LoadImage(context.Context, *ImageRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LoadImage not implemented")
+}
+func (UnimplementedImageServiceServer) GetImages(context.Context, *Empty) (*Images, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetImages not implemented")
 }
 
 // UnsafeImageServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -120,6 +134,24 @@ func _ImageService_LoadImage_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ImageService_GetImages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ImageServiceServer).GetImages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/tgf.ImageService/GetImages",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ImageServiceServer).GetImages(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ImageService_ServiceDesc is the grpc.ServiceDesc for ImageService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +166,10 @@ var ImageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "LoadImage",
 			Handler:    _ImageService_LoadImage_Handler,
+		},
+		{
+			MethodName: "GetImages",
+			Handler:    _ImageService_GetImages_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
