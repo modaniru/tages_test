@@ -33,7 +33,7 @@ func (i *ImageServiceServer) SayHello(ctx context.Context, request *pkg.HelloReq
 func (i *ImageServiceServer) LoadImage(ctx context.Context, request *pkg.ImageRequest) (*pkg.Empty, error) {
 	op := "internal.server.server.ImageServiceServer.LoadImage"
 	err := i.imageService.SaveImage(request.Data, request.Name)
-	simulate()
+	// simulate()
 	if err != nil {
 		return nil, fmt.Errorf("%s load image error: %w", op, err)
 	}
@@ -42,6 +42,7 @@ func (i *ImageServiceServer) LoadImage(ctx context.Context, request *pkg.ImageRe
 
 func (i *ImageServiceServer) GetImages(context.Context, *pkg.Empty) (*pkg.Images, error) {
 	op := "internal.server.server.ImageServiceServer.GetImages"
+	// simulate()
 	images, err := i.imageService.GetImages()
 	if err != nil {
 		return nil, fmt.Errorf("%s get images error: %w", op, err)

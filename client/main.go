@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/modaniru/tages_test/gen/pkg"
@@ -16,21 +15,30 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	img, err := os.ReadFile("client/images/maxresdefault.jpg")
+
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 	client := pkg.NewImageServiceClient(conn)
-
-	for i := 0; i < 200; i++ {
-		j := i
+	// img, err := os.ReadFile("client/images/maxresdefault.jpg")
+	// for i := 0; i < 200; i++ {
+	// 	j := i
+	// 	go func() {
+	// 		_, err := client.LoadImage(context.Background(), &pkg.ImageRequest{Data: img, Name: fmt.Sprintf("%d.jpg", j)})
+	// 		if err != nil {
+	// 			fmt.Println(err.Error())
+	// 		}
+	// 	}()
+	// 	time.Sleep(time.Millisecond * 50)
+	// }
+	for i := 0; i < 1000; i++ {
 		go func() {
-			_, err := client.LoadImage(context.Background(), &pkg.ImageRequest{Data: img, Name: fmt.Sprintf("%d.jpg", j)})
+			_, err := client.GetImages(context.Background(), &pkg.Empty{})
 			if err != nil {
 				fmt.Println(err.Error())
 			}
 		}()
-		time.Sleep(time.Millisecond * 50)
+		time.Sleep(time.Millisecond)
 	}
 	time.Sleep(time.Second * 60)
 }
