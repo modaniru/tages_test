@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	log "log/slog"
 	"sync"
 
 	"github.com/modaniru/tages_test/gen/pkg"
@@ -15,87 +16,98 @@ type RequestLimiter struct {
 	//Для совместимости
 	pkg.UnimplementedImageServiceServer
 	imageServiceServer pkg.ImageServiceServer
-	sayHello  func(func() error) error
-	saveImage func(func() error) error
-	getImages func(func() error) error
+	sayHello           func(func() error) error
+	saveImage          func(func() error) error
+	getImages          func(func() error) error
 }
 
-func NewRequestLimiter(server pkg.ImageServiceServer) *RequestLimiter{
+func NewRequestLimiter(server pkg.ImageServiceServer) *RequestLimiter {
 	return &RequestLimiter{
 		imageServiceServer: server,
-		sayHello:  restrictions(10),
-		saveImage: restrictions(10),
-		getImages: restrictions(100),
+		sayHello:           restrictions(10),
+		saveImage:          restrictions(10),
+		getImages:          restrictions(100),
 	}
 }
 
 func (i *RequestLimiter) SayHello(ctx context.Context, request *pkg.HelloRequest) (*pkg.HelloReply, error) {
 	var result *pkg.HelloReply
 	err := i.sayHello(
-		func() error{
+		func() error {
 			res, err := i.imageServiceServer.SayHello(ctx, request)
 			result = res
-			return err 
+			return err
 		},
 	)
-	if err != nil{
+	if err != nil {
+		if !errors.Is(err, ErrRequestLimited) {
+			log.Error("SayHello", log.String("status", fmt.Sprintf("error: %s", err.Error())))
+		}
 		return nil, err
 	}
+	log.Info("SayHello", log.String("status", "ok"))
 	return result, nil
 }
 
 func (i *RequestLimiter) LoadImage(ctx context.Context, request *pkg.ImageRequest) (*pkg.Empty, error) {
 	var result *pkg.Empty
 	err := i.saveImage(
-		func() error{
+		func() error {
 			res, err := i.imageServiceServer.LoadImage(ctx, request)
 			result = res
 			return err
 		},
 	)
-	if err != nil{
+	if err != nil {
+		if !errors.Is(err, ErrRequestLimited) {
+			log.Error("LoadImage", log.String("status", fmt.Sprintf("error: %s", err.Error())))
+		}
 		return nil, err
 	}
+	log.Info("LoadImage", log.String("status", "ok"))
 	return result, nil
 }
 
-func (i *RequestLimiter) GetImages(ctx context.Context, empty *pkg.Empty) (*pkg.Images, error){
+func (i *RequestLimiter) GetImages(ctx context.Context, empty *pkg.Empty) (*pkg.Images, error) {
 	var result *pkg.Images
 	err := i.getImages(
-		func() error{
+		func() error {
 			res, err := i.imageServiceServer.GetImages(ctx, empty)
 			result = res
 			return err
 		},
 	)
-	if err != nil{
+	if err != nil {
+		if !errors.Is(err, ErrRequestLimited) {
+			log.Error("GetImages", log.String("status", fmt.Sprintf("error: %s", err.Error())))
+		}
 		return nil, err
 	}
+	log.Info("GetImages", log.String("status", "ok"))
 	return result, nil
 }
-
 
 func restrictions(limit int) func(func() error) error {
 	count := 0
 	var mutex sync.RWMutex
-	return func(f func() error) error{
+	return func(f func() error) error {
 		mutex.Lock()
 		count++
 		if count >= limit {
 			count--
 			mutex.Unlock()
+			log.Error("requests limit error")
 			return ErrRequestLimited
 		}
 		mutex.Unlock()
 
-		defer func(){
+		defer func() {
 			mutex.Lock()
 			count--
 			mutex.Unlock()
 		}()
-		fmt.Println(count)
 		err := f()
-		if err != nil{
+		if err != nil {
 			return err
 		}
 

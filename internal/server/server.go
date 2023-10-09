@@ -10,7 +10,7 @@ import (
 	"github.com/modaniru/tages_test/internal/service"
 )
 
-
+// TODO remove simulator()
 type ImageServiceServer struct {
 	//Для совместимости
 	pkg.UnimplementedImageServiceServer
@@ -34,20 +34,20 @@ func (i *ImageServiceServer) LoadImage(ctx context.Context, request *pkg.ImageRe
 	op := "internal.server.server.ImageServiceServer.LoadImage"
 	err := i.imageService.SaveImage(request.Data, request.Name)
 	simulate()
-	if err != nil{
+	if err != nil {
 		return nil, fmt.Errorf("%s load image error: %w", op, err)
 	}
 	return &pkg.Empty{}, nil
 }
 
-func (i *ImageServiceServer) GetImages(context.Context, *pkg.Empty) (*pkg.Images, error){
+func (i *ImageServiceServer) GetImages(context.Context, *pkg.Empty) (*pkg.Images, error) {
 	op := "internal.server.server.ImageServiceServer.GetImages"
 	images, err := i.imageService.GetImages()
-	if err != nil{
+	if err != nil {
 		return nil, fmt.Errorf("%s get images error: %w", op, err)
 	}
 	result := pkg.Images{}
-	for _, i := range images{
+	for _, i := range images {
 		result.Images = append(result.Images, &pkg.Image{
 			Data: i.Data,
 			Name: i.Name,
@@ -57,6 +57,6 @@ func (i *ImageServiceServer) GetImages(context.Context, *pkg.Empty) (*pkg.Images
 	return &result, nil
 }
 
-func simulate(){
-	time.Sleep(time.Millisecond * time.Duration(1000 + rand.Float64() * 1000))
+func simulate() {
+	time.Sleep(time.Millisecond * time.Duration(1000+rand.Float64()*1000))
 }
