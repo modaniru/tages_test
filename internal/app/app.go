@@ -19,12 +19,16 @@ func App() {
 	imageService := service.NewImageService()
 	imageServer := server.NewImageServiceServer(imageService)
 	requestLimiter := server.NewRequestLimiter(imageServer)
-	listener, _ := net.Listen("tcp", ":8080")
+	listener, err := net.Listen("tcp", ":80")
+	if err != nil {
+		log.Error("listen error")
+		os.Exit(1)
+	}
 	s := grpc.NewServer()
 	reflection.Register(s)
 	pkg.RegisterImageServiceServer(s, requestLimiter)
 	log.Info("starting the server...")
-	err := s.Serve(listener)
+	err = s.Serve(listener)
 	if err != nil {
 		log.Error("start server error")
 		os.Exit(1)

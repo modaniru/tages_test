@@ -58,6 +58,26 @@ func (i *ImageServiceServer) GetImages(context.Context, *pkg.Empty) (*pkg.Images
 	return &result, nil
 }
 
+func (i *ImageServiceServer) GetImagesStream(request *pkg.Empty, res pkg.ImageService_GetImagesStreamServer) error {
+	images, _ := i.imageService.GetImages()
+	result := []*pkg.Image{}
+	for _, i := range images {
+		result = append(result, &pkg.Image{
+			Data: i.Data,
+			Name: i.Name,
+			Date: i.Date,
+		})
+	}
+	j := 1
+	for ; j < len(result)/10; j++ {
+		res.Send(&pkg.Images{Images: result[10*(j-1) : j*10]})
+	}
+	if j*10 < len(result) {
+		res.Send(&pkg.Images{Images: result[j*10:]})
+	}
+	return nil
+}
+
 func simulate() {
 	time.Sleep(time.Millisecond * time.Duration(1000+rand.Float64()*1000))
 }

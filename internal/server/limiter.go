@@ -19,6 +19,7 @@ type RequestLimiter struct {
 	sayHello           func(func() error) error
 	saveImage          func(func() error) error
 	getImages          func(func() error) error
+	getImagesStream    func(func() error) error
 }
 
 func NewRequestLimiter(server pkg.ImageServiceServer) *RequestLimiter {
@@ -27,6 +28,7 @@ func NewRequestLimiter(server pkg.ImageServiceServer) *RequestLimiter {
 		sayHello:           restrictions(10),
 		saveImage:          restrictions(10),
 		getImages:          restrictions(100),
+		getImagesStream:    restrictions(100),
 	}
 }
 
@@ -85,6 +87,23 @@ func (i *RequestLimiter) GetImages(ctx context.Context, empty *pkg.Empty) (*pkg.
 	}
 	log.Info("GetImages", log.String("status", "ok"))
 	return result, nil
+}
+
+func (i *RequestLimiter) GetImagesStream(request *pkg.Empty, res pkg.ImageService_GetImagesStreamServer) error {
+	err := i.getImages(
+		func() error {
+			err := i.imageServiceServer.GetImagesStream(request, res)
+			return err
+		},
+	)
+	if err != nil {
+		if !errors.Is(err, ErrRequestLimited) {
+			log.Error("GetImages", log.String("status", fmt.Sprintf("error: %s", err.Error())))
+		}
+		return err
+	}
+	log.Info("GetImages", log.String("status", "ok"))
+	return nil
 }
 
 func restrictions(limit int) func(func() error) error {

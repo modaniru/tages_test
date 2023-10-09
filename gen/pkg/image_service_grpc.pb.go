@@ -26,6 +26,7 @@ type ImageServiceClient interface {
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
 	LoadImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (*Empty, error)
 	GetImages(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Images, error)
+	GetImagesStream(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ImageService_GetImagesStreamClient, error)
 }
 
 type imageServiceClient struct {
@@ -63,6 +64,38 @@ func (c *imageServiceClient) GetImages(ctx context.Context, in *Empty, opts ...g
 	return out, nil
 }
 
+func (c *imageServiceClient) GetImagesStream(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ImageService_GetImagesStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ImageService_ServiceDesc.Streams[0], "/tgf.ImageService/GetImagesStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &imageServiceGetImagesStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type ImageService_GetImagesStreamClient interface {
+	Recv() (*Images, error)
+	grpc.ClientStream
+}
+
+type imageServiceGetImagesStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *imageServiceGetImagesStreamClient) Recv() (*Images, error) {
+	m := new(Images)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ImageServiceServer is the server API for ImageService service.
 // All implementations should embed UnimplementedImageServiceServer
 // for forward compatibility
@@ -71,6 +104,7 @@ type ImageServiceServer interface {
 	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
 	LoadImage(context.Context, *ImageRequest) (*Empty, error)
 	GetImages(context.Context, *Empty) (*Images, error)
+	GetImagesStream(*Empty, ImageService_GetImagesStreamServer) error
 }
 
 // UnimplementedImageServiceServer should be embedded to have forward compatible implementations.
@@ -85,6 +119,9 @@ func (UnimplementedImageServiceServer) LoadImage(context.Context, *ImageRequest)
 }
 func (UnimplementedImageServiceServer) GetImages(context.Context, *Empty) (*Images, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetImages not implemented")
+}
+func (UnimplementedImageServiceServer) GetImagesStream(*Empty, ImageService_GetImagesStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetImagesStream not implemented")
 }
 
 // UnsafeImageServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -152,6 +189,27 @@ func _ImageService_GetImages_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ImageService_GetImagesStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ImageServiceServer).GetImagesStream(m, &imageServiceGetImagesStreamServer{stream})
+}
+
+type ImageService_GetImagesStreamServer interface {
+	Send(*Images) error
+	grpc.ServerStream
+}
+
+type imageServiceGetImagesStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *imageServiceGetImagesStreamServer) Send(m *Images) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // ImageService_ServiceDesc is the grpc.ServiceDesc for ImageService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -172,6 +230,12 @@ var ImageService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ImageService_GetImages_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetImagesStream",
+			Handler:       _ImageService_GetImagesStream_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "image_service.proto",
 }

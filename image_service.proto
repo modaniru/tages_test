@@ -10,6 +10,7 @@ service ImageService {
     rpc SayHello (HelloRequest) returns (HelloReply) {}
     rpc LoadImage (ImageRequest) returns (Empty) {}
     rpc GetImages (Empty) returns (Images) {}
+    rpc GetImagesStream (Empty) returns (stream Images) {}
 }
 
 message Empty{

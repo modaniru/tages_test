@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  tages-test:
+    build: ./
+    volumes:
+      - ./images:/app/images
+    ports:
+      - 80:80
+    restart: always
