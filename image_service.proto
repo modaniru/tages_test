@@ -9,10 +9,9 @@ service ImageService {
     // Sends a greeting
     rpc SayHello (HelloRequest) returns (HelloReply) {}
     rpc LoadImage (ImageRequest) returns (Empty) {}
-    rpc GetImages (Empty) returns (Images) {}
-    rpc GetImagesStream (Empty) returns (stream Images) {}
     rpc LoadImageStream (stream ImageRequest) returns (Empty) {}
     rpc GetImagesInfo (Empty) returns (ImagesInfo) {}
+    rpc GetImageStream (GetImageRequest) returns (stream GetImageResponse) {}
 }
 
 message ImagesInfo{
@@ -29,14 +28,12 @@ message Empty{
 
 }
 
-message Images{
-    repeated Image Images = 1;
+message GetImageRequest{
+    repeated string Names = 1;
 }
- 
-message Image{
+
+message GetImageResponse{
     bytes Data = 1;
-    string Name = 2;
-    string Date = 3;
 }
 
 message ImageRequest{

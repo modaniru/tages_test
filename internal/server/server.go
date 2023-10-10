@@ -5,14 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
-	"time"
 
 	"github.com/modaniru/tages_test/gen/pkg"
 	"github.com/modaniru/tages_test/internal/service"
 )
 
-// TODO remove simulator()
 type ImageServiceServer struct {
 	//Для совместимости
 	pkg.UnimplementedImageServiceServer
@@ -39,6 +36,7 @@ func (i *ImageServiceServer) LoadImage(ctx context.Context, request *pkg.ImageRe
 	if err != nil {
 		return nil, fmt.Errorf("%s load image error: %w", op, err)
 	}
+
 	return &pkg.Empty{}, nil
 }
 
@@ -49,9 +47,11 @@ func (i *ImageServiceServer) LoadImageStream(stream pkg.ImageService_LoadImageSt
 		if errors.Is(err, io.EOF) {
 			return stream.SendAndClose(&pkg.Empty{})
 		}
+
 		if err != nil {
 			return fmt.Errorf("%s stream.Recv() error: %w", op, err)
 		}
+
 		err = i.imageService.SaveImage(request.Data, request.Name)
 		if err != nil {
 			return fmt.Errorf("%s load image error: %w", op, err)
@@ -59,48 +59,21 @@ func (i *ImageServiceServer) LoadImageStream(stream pkg.ImageService_LoadImageSt
 	}
 }
 
-func (i *ImageServiceServer) GetImages(context.Context, *pkg.Empty) (*pkg.Images, error) {
-	op := "internal.server.server.ImageServiceServer.GetImages"
-	// simulate()
-	images, err := i.imageService.GetImages()
-	if err != nil {
-		return nil, fmt.Errorf("%s get images error: %w", op, err)
-	}
-	result := pkg.Images{}
-	for _, i := range images {
-		result.Images = append(result.Images, &pkg.Image{
-			Data: i.Data,
-			Name: i.Name,
-			Date: i.Date,
-		})
-	}
-	return &result, nil
-}
+func (i *ImageServiceServer) GetImageStream(req *pkg.GetImageRequest, stream pkg.ImageService_GetImageStreamServer) error {
+	for _, name := range req.GetNames() {
+		data, err := i.imageService.GetImage(name)
+		if err != nil {
+			return err
+		}
 
-func (i *ImageServiceServer) GetImagesStream(request *pkg.Empty, res pkg.ImageService_GetImagesStreamServer) error {
-	images, _ := i.imageService.GetImages()
-	result := []*pkg.Image{}
-	for _, i := range images {
-		result = append(result, &pkg.Image{
-			Data: i.Data,
-			Name: i.Name,
-			Date: i.Date,
-		})
-	}
-	j := 1
-	for ; j < len(result)/10; j++ {
-		res.Send(&pkg.Images{Images: result[10*(j-1) : j*10]})
-	}
-	if j*10 < len(result) {
-		res.Send(&pkg.Images{Images: result[j*10:]})
+		err = stream.Send(&pkg.GetImageResponse{Data: data})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func (i *ImageServiceServer) GetImagesInfo(ctx context.Context, request *pkg.Empty) (*pkg.ImagesInfo, error) {
 	return i.imageService.GetImagesInfo()
-}
-
-func simulate() {
-	time.Sleep(time.Millisecond * time.Duration(1000+rand.Float64()*1000))
 }

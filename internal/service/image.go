@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/modaniru/tages_test/gen/pkg"
-	"github.com/modaniru/tages_test/internal/entity"
 )
 
 type ImageService struct{}
@@ -50,26 +49,10 @@ func (i *ImageService) GetImagesInfo() (*pkg.ImagesInfo, error) {
 	return &pkg.ImagesInfo{Images: images}, nil
 }
 
-func (i *ImageService) GetImages() ([]entity.Image, error) {
-	dir, err := os.ReadDir("images")
+func (i *ImageService) GetImage(name string) ([]byte, error) {
+	res, err := os.ReadFile(fmt.Sprintf("images/%s", name))
 	if err != nil {
-		return nil, fmt.Errorf("read dir error: %w", err)
+		return nil, fmt.Errorf("read image with name %s error: %w", name, err)
 	}
-	images := []entity.Image{}
-	for _, f := range dir {
-		if f.IsDir() {
-			continue
-		}
-		i, err := f.Info()
-		if err != nil {
-			return nil, fmt.Errorf("get file info error: %w", err)
-		}
-		date := i.ModTime().Format("2006-01-02 15:04:05")
-		data, err := os.ReadFile(fmt.Sprintf("images/%s", i.Name()))
-		if err != nil {
-			return nil, fmt.Errorf("read file error: %w", err)
-		}
-		images = append(images, entity.Image{Name: f.Name(), Date: date, Data: data})
-	}
-	return images, nil
+	return res, nil
 }
