@@ -26,7 +26,7 @@ func NewRequestLimiter(server pkg.ImageServiceServer) *RequestLimiter {
 	return &RequestLimiter{
 		imageServiceServer: server,
 		saveImage:          restrictions(10),
-		saveImageStream:    restrictions(2),
+		saveImageStream:    restrictions(10),
 		getImageStream:     restrictions(10),
 		getImagesInfo:      restrictions(100),
 	}

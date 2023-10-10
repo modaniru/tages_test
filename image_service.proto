@@ -7,12 +7,13 @@ option go_package = "/pkg";
 // The greeting service definition.
 service ImageService {
     // Sends a greeting
-    rpc SayHello (HelloRequest) returns (HelloReply) {}
     rpc LoadImage (ImageRequest) returns (Empty) {}
     rpc LoadImageStream (stream ImageRequest) returns (Empty) {}
     rpc GetImagesInfo (Empty) returns (ImagesInfo) {}
     rpc GetImageStream (GetImageRequest) returns (stream GetImageResponse) {}
 }
+
+message Empty{}
 
 message ImagesInfo{
     repeated ImageInfo images = 1;
@@ -24,9 +25,7 @@ message ImageInfo{
     string UpdateAt = 3;
 }
 
-message Empty{
 
-}
 
 message GetImageRequest{
     repeated string Names = 1;
@@ -39,14 +38,4 @@ message GetImageResponse{
 message ImageRequest{
     bytes Data = 1;
     string Name = 2;
-}
-
-// The request message containing the user's name.
-message HelloRequest {
-    string name = 1;
-}
-  
-// The response message containing the greetings
-message HelloReply {
-    string message = 1;
 }
