@@ -3,9 +3,8 @@ package service
 import (
 	"fmt"
 	"os"
-	"syscall"
-	"time"
 
+	"github.com/djherbis/times"
 	"github.com/modaniru/tages_test/gen/pkg"
 )
 
@@ -38,11 +37,17 @@ func (i *ImageService) GetImagesInfo() (*pkg.ImagesInfo, error) {
 			// TODO mb continue?
 			return nil, fmt.Errorf("get file info error: %w", err)
 		}
-		stat := i.Sys().(*syscall.Stat_t)
-		birthTime := time.Unix(stat.Birthtimespec.Sec, stat.Birthtimespec.Nsec)
+		t, err := times.Stat(fmt.Sprintf("images/%s", i.Name()))
+		if err != nil {
+			return nil, err
+		}
+		bt := "system not support btime"
+		if t.HasBirthTime() {
+			bt = t.BirthTime().Format("2006-01-02 15:04:05")
+		}
 		images = append(images, &pkg.ImageInfo{
 			Name:     f.Name(),
-			CreateAt: birthTime.Format("2006-01-02 15:04:05"),
+			CreateAt: bt,
 			UpdateAt: i.ModTime().Format("2006-01-02 15:04:05"),
 		})
 	}

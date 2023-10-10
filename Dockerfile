@@ -1,4 +1,4 @@
-FROM golang:latest
+FROM golang:alpine
 
 RUN go version
 ENV GOPATH=/
@@ -6,6 +6,6 @@ ENV GOPATH=/
 WORKDIR /app
 COPY ./ ./
 
-RUN go build -o tages-test ./cmd/main.go
+RUN go build ./cmd/main.go
 
-CMD ["./tages-test"]
+CMD ["./main"]
