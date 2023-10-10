@@ -124,6 +124,10 @@ func (i *RequestLimiter) GetImagesStream(request *pkg.Empty, res pkg.ImageServic
 	return nil
 }
 
+func (i *RequestLimiter) GetImagesInfo(ctx context.Context, request *pkg.Empty) (*pkg.ImagesInfo, error) {
+	return i.imageServiceServer.GetImagesInfo(ctx, request)
+}
+
 func restrictions(limit int) func(func() error) error {
 	count := 0
 	var mutex sync.RWMutex

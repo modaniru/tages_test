@@ -97,6 +97,10 @@ func (i *ImageServiceServer) GetImagesStream(request *pkg.Empty, res pkg.ImageSe
 	return nil
 }
 
+func (i *ImageServiceServer) GetImagesInfo(ctx context.Context, request *pkg.Empty) (*pkg.ImagesInfo, error) {
+	return i.imageService.GetImagesInfo()
+}
+
 func simulate() {
 	time.Sleep(time.Millisecond * time.Duration(1000+rand.Float64()*1000))
 }
