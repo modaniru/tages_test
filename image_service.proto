@@ -11,6 +11,7 @@ service ImageService {
     rpc LoadImage (ImageRequest) returns (Empty) {}
     rpc GetImages (Empty) returns (Images) {}
     rpc GetImagesStream (Empty) returns (stream Images) {}
+    rpc LoadImageStream (stream ImageRequest) returns (Empty) {}
 }
 
 message Empty{

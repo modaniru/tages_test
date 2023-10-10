@@ -27,6 +27,7 @@ type ImageServiceClient interface {
 	LoadImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (*Empty, error)
 	GetImages(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Images, error)
 	GetImagesStream(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ImageService_GetImagesStreamClient, error)
+	LoadImageStream(ctx context.Context, opts ...grpc.CallOption) (ImageService_LoadImageStreamClient, error)
 }
 
 type imageServiceClient struct {
@@ -96,6 +97,40 @@ func (x *imageServiceGetImagesStreamClient) Recv() (*Images, error) {
 	return m, nil
 }
 
+func (c *imageServiceClient) LoadImageStream(ctx context.Context, opts ...grpc.CallOption) (ImageService_LoadImageStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ImageService_ServiceDesc.Streams[1], "/tgf.ImageService/LoadImageStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &imageServiceLoadImageStreamClient{stream}
+	return x, nil
+}
+
+type ImageService_LoadImageStreamClient interface {
+	Send(*ImageRequest) error
+	CloseAndRecv() (*Empty, error)
+	grpc.ClientStream
+}
+
+type imageServiceLoadImageStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *imageServiceLoadImageStreamClient) Send(m *ImageRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *imageServiceLoadImageStreamClient) CloseAndRecv() (*Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ImageServiceServer is the server API for ImageService service.
 // All implementations should embed UnimplementedImageServiceServer
 // for forward compatibility
@@ -105,6 +140,7 @@ type ImageServiceServer interface {
 	LoadImage(context.Context, *ImageRequest) (*Empty, error)
 	GetImages(context.Context, *Empty) (*Images, error)
 	GetImagesStream(*Empty, ImageService_GetImagesStreamServer) error
+	LoadImageStream(ImageService_LoadImageStreamServer) error
 }
 
 // UnimplementedImageServiceServer should be embedded to have forward compatible implementations.
@@ -122,6 +158,9 @@ func (UnimplementedImageServiceServer) GetImages(context.Context, *Empty) (*Imag
 }
 func (UnimplementedImageServiceServer) GetImagesStream(*Empty, ImageService_GetImagesStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetImagesStream not implemented")
+}
+func (UnimplementedImageServiceServer) LoadImageStream(ImageService_LoadImageStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method LoadImageStream not implemented")
 }
 
 // UnsafeImageServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -210,6 +249,32 @@ func (x *imageServiceGetImagesStreamServer) Send(m *Images) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _ImageService_LoadImageStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ImageServiceServer).LoadImageStream(&imageServiceLoadImageStreamServer{stream})
+}
+
+type ImageService_LoadImageStreamServer interface {
+	SendAndClose(*Empty) error
+	Recv() (*ImageRequest, error)
+	grpc.ServerStream
+}
+
+type imageServiceLoadImageStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *imageServiceLoadImageStreamServer) SendAndClose(m *Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *imageServiceLoadImageStreamServer) Recv() (*ImageRequest, error) {
+	m := new(ImageRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ImageService_ServiceDesc is the grpc.ServiceDesc for ImageService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -235,6 +300,11 @@ var ImageService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "GetImagesStream",
 			Handler:       _ImageService_GetImagesStream_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "LoadImageStream",
+			Handler:       _ImageService_LoadImageStream_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "image_service.proto",

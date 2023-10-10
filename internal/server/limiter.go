@@ -18,6 +18,7 @@ type RequestLimiter struct {
 	imageServiceServer pkg.ImageServiceServer
 	sayHello           func(func() error) error
 	saveImage          func(func() error) error
+	saveImageStream    func(func() error) error
 	getImages          func(func() error) error
 	getImagesStream    func(func() error) error
 }
@@ -27,6 +28,7 @@ func NewRequestLimiter(server pkg.ImageServiceServer) *RequestLimiter {
 		imageServiceServer: server,
 		sayHello:           restrictions(10),
 		saveImage:          restrictions(10),
+		saveImageStream:    restrictions(10),
 		getImages:          restrictions(100),
 		getImagesStream:    restrictions(100),
 	}
@@ -68,6 +70,22 @@ func (i *RequestLimiter) LoadImage(ctx context.Context, request *pkg.ImageReques
 	}
 	log.Info("LoadImage", log.String("status", "ok"))
 	return result, nil
+}
+
+func (i *RequestLimiter) LoadImageStream(stream pkg.ImageService_LoadImageStreamServer) error {
+	err := i.saveImageStream(
+		func() error {
+			return i.imageServiceServer.LoadImageStream(stream)
+		},
+	)
+	if err != nil {
+		if !errors.Is(err, ErrRequestLimited) {
+			log.Error("LoadImageStream", log.String("status", fmt.Sprintf("error: %s", err.Error())))
+		}
+		return err
+	}
+	log.Info("LoadImageStream", log.String("status", "ok"))
+	return nil
 }
 
 func (i *RequestLimiter) GetImages(ctx context.Context, empty *pkg.Empty) (*pkg.Images, error) {
@@ -112,7 +130,7 @@ func restrictions(limit int) func(func() error) error {
 	return func(f func() error) error {
 		mutex.Lock()
 		count++
-		if count >= limit {
+		if count > limit {
 			count--
 			mutex.Unlock()
 			log.Error("requests limit error")

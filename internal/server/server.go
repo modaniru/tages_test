@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"time"
 
@@ -38,6 +40,23 @@ func (i *ImageServiceServer) LoadImage(ctx context.Context, request *pkg.ImageRe
 		return nil, fmt.Errorf("%s load image error: %w", op, err)
 	}
 	return &pkg.Empty{}, nil
+}
+
+func (i *ImageServiceServer) LoadImageStream(stream pkg.ImageService_LoadImageStreamServer) error {
+	op := "internal.server.server.ImageServiceServer.LoadImageStream"
+	for {
+		request, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			return stream.SendAndClose(&pkg.Empty{})
+		}
+		if err != nil {
+			return fmt.Errorf("%s stream.Recv() error: %w", op, err)
+		}
+		err = i.imageService.SaveImage(request.Data, request.Name)
+		if err != nil {
+			return fmt.Errorf("%s load image error: %w", op, err)
+		}
+	}
 }
 
 func (i *ImageServiceServer) GetImages(context.Context, *pkg.Empty) (*pkg.Images, error) {
